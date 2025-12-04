@@ -1,0 +1,126 @@
+# ==================================================
+# ⚠️ WARNING:
+# Do NOT commit any .env files or private keys.
+# ==================================================
+
+# ===========================
+# Dependencies
+# ===========================
+node_modules/
+.pnp
+.pnp.js
+
+# ===========================
+# Build outputs
+# ===========================
+.next/
+out/
+build/
+dist/
+.nuxt/
+.storybook-out/
+.cache/
+.parcel-cache/
+.nyc_output/
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# ===========================
+# Environment files (Sensitive)
+# ===========================
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+
+# ===========================
+# Database
+# ===========================
+*.db
+*.sqlite
+prisma/dev.db
+prisma/migrations/
+
+# ===========================
+# Logs
+# ===========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.pid
+*.seed
+*.pid.lock
+
+# ===========================
+# Coverage
+# ===========================
+coverage/
+*.lcov
+
+# ===========================
+# IDE / Editors
+# ===========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ===========================
+# OS files
+# ===========================
+.DS_Store
+Thumbs.db
+
+# ===========================
+# SSL / Certificates
+# ===========================
+ssl/
+*.pem
+*.key
+*.crt
+
+# ===========================
+# Docker
+# ===========================
+.dockerignore
+docker-compose.yml
+docker-compose.override.yml
+
+# ===========================
+# Deployment / Cloud
+# ===========================
+.vercel
+.github/
+
+# ===========================
+# Uploads / Media
+# ===========================
+uploads/
+public/uploads/
+public/avatars/
+public/temp/
+
+# ===========================
+# Misc / Temporary Files
+# ===========================
+tmp/
+temp/
+.cache
+*.backup
+*.bak
+.yarn-integrity
+node_repl_history
+*.tgz
+.npm
+.eslintcache
+
+/generated/prisma

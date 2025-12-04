@@ -1,0 +1,79 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyJWTFromRequestAsync } from '@/lib/jwt-validator';
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+
+// Helper function to verify user token
+async function verifyUserToken(request: NextRequest) {
+  return await verifyJWTFromRequestAsync(request);
+}
+
+// GET /api/auth/mfa/setup - Get MFA setup data (proxy to backend)
+export async function GET(request: NextRequest) {
+  try {
+    // Forward request directly to backend - let backend handle authentication
+    // Backend has middleware to verify token from cookies
+    const cookie = request.headers.get('cookie');
+    const authHeader = request.headers.get('authorization');
+    
+    try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (cookie) {
+        headers['Cookie'] = cookie;
+      }
+      
+      if (authHeader) {
+        headers['Authorization'] = authHeader;
+      }
+      
+      // Call backend MFA setup endpoint - backend will verify authentication
+      const mfaResponse = await fetch(`${BACKEND_URL}/api/auth/mfa/setup`, {
+        method: 'GET',
+        headers,
+        credentials: 'include',
+      });
+
+      const mfaData = await mfaResponse.json();
+      
+      if (mfaResponse.ok) {
+        console.log('Backend MFA setup response:', {
+          success: mfaData.success,
+          hasQrCode: !!mfaData.qrCode,
+          hasSecret: !!mfaData.manualEntryKey,
+          mfaEnabled: mfaData.mfaEnabled
+        });
+        return NextResponse.json(mfaData);
+      } else {
+        // Backend returned error - forward it to frontend
+        return NextResponse.json(
+          {
+            success: false,
+            error: mfaData.error || 'Failed to setup MFA',
+            mfaEnabled: false
+          },
+          { status: 200 } // Return 200 to avoid console errors
+        );
+      }
+    } catch (err) {
+      console.error('Error setting up MFA:', err);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to setup MFA',
+          mfaEnabled: false
+        },
+        { status: 200 } // Return 200 to avoid console errors
+      );
+    }
+
+  } catch (error) {
+    console.error('MFA setup error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
