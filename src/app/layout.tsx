@@ -24,9 +24,9 @@ async function getSeoSettings() {
         return data.seoSettings;
       }
     }
-  } catch (error) {
-    console.error('Error fetching SEO settings:', error);
-  }
+    } catch (error) {
+      // Silent error handling
+    }
   
   // Return defaults if fetch fails
   return {

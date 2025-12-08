@@ -22,7 +22,6 @@ export async function GET() {
       pagesContent: null
     });
   } catch (error: any) {
-    console.error('Error fetching pages content:', error);
     return NextResponse.json({
       success: true,
       pagesContent: null

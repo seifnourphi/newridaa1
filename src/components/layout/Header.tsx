@@ -130,7 +130,6 @@ export function Header() {
         }
       }
     } catch (error) {
-      console.error('Error fetching store settings:', error);
       // Use cached data or defaults on error
       if (settingsCacheRef.current) {
         setStoreSettings(settingsCacheRef.current.data);

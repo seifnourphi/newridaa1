@@ -39,12 +39,6 @@ export async function GET(request: NextRequest) {
       const mfaData = await mfaResponse.json();
       
       if (mfaResponse.ok) {
-        console.log('Backend MFA setup response:', {
-          success: mfaData.success,
-          hasQrCode: !!mfaData.qrCode,
-          hasSecret: !!mfaData.manualEntryKey,
-          mfaEnabled: mfaData.mfaEnabled
-        });
         return NextResponse.json(mfaData);
       } else {
         // Backend returned error - forward it to frontend
@@ -58,7 +52,6 @@ export async function GET(request: NextRequest) {
         );
       }
     } catch (err) {
-      console.error('Error setting up MFA:', err);
       return NextResponse.json(
         {
           success: false,
@@ -70,7 +63,6 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('MFA setup error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

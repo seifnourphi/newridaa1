@@ -35,17 +35,14 @@ export function ImageCropper({
 
   useEffect(() => {
     if (image) {
-      console.log('ImageCropper: Image prop received, length:', image.length, 'starts with:', image.substring(0, 30));
       // Preload image to ensure it's ready and get actual dimensions
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
-        console.log('ImageCropper: Image loaded successfully, dimensions:', img.width, 'x', img.height);
         setImageSize({ width: img.width, height: img.height });
         setImageLoaded(true);
       };
-      img.onerror = (error) => {
-        console.error('ImageCropper: Error loading image:', error);
+      img.onerror = () => {
         setImageLoaded(false);
         setImageSize(null);
       };
@@ -53,7 +50,6 @@ export function ImageCropper({
       
       // Set loaded immediately if it's a data URL (already loaded)
       if (image.startsWith('data:')) {
-        console.log('ImageCropper: Data URL detected, setting loaded immediately');
         // Still need to get dimensions
         img.onload = () => {
           setImageSize({ width: img.width, height: img.height });
@@ -265,14 +261,12 @@ export function ImageCropper({
 
   const handleCropComplete = async () => {
     if (!croppedAreaPixels) {
-      console.error('No crop area selected');
       return;
     }
 
     // Validate croppedAreaPixels
     if (typeof croppedAreaPixels.x !== 'number' || typeof croppedAreaPixels.y !== 'number' ||
         typeof croppedAreaPixels.width !== 'number' || typeof croppedAreaPixels.height !== 'number') {
-      console.error('Invalid crop area:', croppedAreaPixels);
       return;
     }
 
@@ -281,7 +275,6 @@ export function ImageCropper({
       const croppedImage = await getCroppedImg(image, croppedAreaPixels, rotation);
       onCropComplete(croppedImage);
     } catch (error) {
-      console.error('Error cropping image:', error);
       alert(`Error cropping image: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsProcessing(false);

@@ -26,7 +26,6 @@ export async function GET() {
       }
     });
   } catch (error: any) {
-    console.error('Error fetching SEO settings:', error);
     return NextResponse.json({
       success: true,
       seoSettings: {

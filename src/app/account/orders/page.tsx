@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { escapeHtml } from '@/lib/client-validation';
-import { 
-  Package, 
-  Calendar, 
-  CreditCard, 
-  Truck, 
+import {
+  Package,
+  Calendar,
+  CreditCard,
+  Truck,
   CheckCircle,
   Clock,
   XCircle,
@@ -80,10 +80,10 @@ export default function OrdersPage() {
 
     try {
       setIsLoading(true);
-      
+
       // Get token from localStorage
       const token = localStorage.getItem('token');
-      
+
       const response = await fetch('/api/account/orders', {
         headers: {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -91,28 +91,24 @@ export default function OrdersPage() {
         },
         credentials: 'include',
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         const ordersArray = data.orders || data.data?.orders || [];
-        
+
         // Remove duplicate orders based on ID or orderNumber
         const uniqueOrders = ordersArray.filter((order: Order, index: number, self: Order[]) => {
           const orderId = order.id || order.orderNumber;
           return index === self.findIndex((o: Order) => (o.id || o.orderNumber) === orderId);
         });
-        
+
         setOrders(uniqueOrders);
       } else if (response.status === 401) {
         // Redirect to login if unauthorized
-        console.error('Unauthorized - redirecting to login');
         router.push('/auth/login?redirect=/account/orders');
-      } else {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('Error fetching orders:', response.status, errorData);
       }
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      // Silent error handling
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +123,7 @@ export default function OrdersPage() {
         return 'EGP 0';
       }
     }
-    return language === 'ar' 
+    return language === 'ar'
       ? `ج.م ${Number(price).toLocaleString('en-US')}`
       : `EGP ${Number(price).toLocaleString('en-US')}`;
   };
@@ -183,8 +179,8 @@ export default function OrdersPage() {
     return statusMap[status.toLowerCase() as keyof typeof statusMap] || statusMap.pending;
   };
 
-  const filteredOrders = selectedStatus === 'all' 
-    ? orders 
+  const filteredOrders = selectedStatus === 'all'
+    ? orders
     : orders.filter(order => order.status === selectedStatus);
 
   const handleViewDetails = (order: Order) => {
@@ -212,7 +208,6 @@ export default function OrdersPage() {
         setCopiedOrderId(null);
       }, 2000);
     } catch (error) {
-      console.error('Failed to copy:', error);
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
       textArea.value = orderNumber;
@@ -227,7 +222,7 @@ export default function OrdersPage() {
           setCopiedOrderId(null);
         }, 2000);
       } catch (err) {
-        console.error('Fallback copy failed:', err);
+        // Silent fallback error
       }
       document.body.removeChild(textArea);
     }
@@ -270,15 +265,15 @@ export default function OrdersPage() {
           return;
         }
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        alert(language === 'ar' 
-          ? `فشل تحميل الفاتورة: ${errorData.error || 'خطأ غير معروف'}` 
+        alert(language === 'ar'
+          ? `فشل تحميل الفاتورة: ${errorData.error || 'خطأ غير معروف'}`
           : `Failed to download invoice: ${errorData.error || 'Unknown error'}`);
         return;
       }
 
       // Get PDF content
       const pdfBlob = await response.blob();
-      
+
       // Create blob URL and download
       const url = URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
@@ -288,9 +283,8 @@ export default function OrdersPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
     } catch (error) {
-      console.error('Error downloading invoice:', error);
       alert(language === 'ar' ? 'حدث خطأ أثناء تحميل الفاتورة' : 'An error occurred while downloading invoice');
     }
   };
@@ -298,10 +292,10 @@ export default function OrdersPage() {
   // Show loading while checking authentication or fetching orders
   if (authLoading || isLoading) {
     return (
-      <div className={`min-h-screen bg-white flex items-center justify-center ${language === 'ar' ? 'rtl' : 'ltr'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className={`min-h-screen bg-white flex items-center justify-center ${language === 'ar' ? 'rtl' : 'ltr'}`} dir={language === 'ar' ? 'rtl' : 'ltr'} suppressHydrationWarning>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DAA520] mx-auto"></div>
-          <p className="mt-4 text-gray-600">
+          <p className="mt-4 text-gray-600" suppressHydrationWarning>
             {language === 'ar' ? 'جاري تحميل الطلبات...' : 'Loading orders...'}
           </p>
         </div>
@@ -315,7 +309,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className={`min-h-screen bg-white ${language === 'ar' ? 'rtl' : 'ltr'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className={`min-h-screen bg-white ${language === 'ar' ? 'rtl' : 'ltr'}`} dir={language === 'ar' ? 'rtl' : 'ltr'} suppressHydrationWarning>
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -336,71 +330,64 @@ export default function OrdersPage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setSelectedStatus('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectedStatus === 'all'
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedStatus === 'all'
                   ? 'bg-[#DAA520] text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {language === 'ar' ? 'الكل' : 'All'}
             </button>
             <button
               onClick={() => setSelectedStatus('pending')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectedStatus === 'pending'
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedStatus === 'pending'
                   ? 'bg-[#DAA520] text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {language === 'ar' ? 'في الانتظار' : 'Pending'}
             </button>
             <button
               onClick={() => setSelectedStatus('processing')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectedStatus === 'processing'
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedStatus === 'processing'
                   ? 'bg-[#DAA520] text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {language === 'ar' ? 'قيد المعالجة' : 'Processing'}
             </button>
             <button
               onClick={() => setSelectedStatus('shipped')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectedStatus === 'shipped'
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedStatus === 'shipped'
                   ? 'bg-[#DAA520] text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {language === 'ar' ? 'تم الشحن' : 'Shipped'}
             </button>
             <button
               onClick={() => setSelectedStatus('shipping_paid')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectedStatus === 'shipping_paid'
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedStatus === 'shipping_paid'
                   ? 'bg-[#DAA520] text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {language === 'ar' ? 'مدفوع الشحن' : 'Shipping Paid'}
             </button>
             <button
               onClick={() => setSelectedStatus('awaiting_delivery')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectedStatus === 'awaiting_delivery'
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedStatus === 'awaiting_delivery'
                   ? 'bg-[#DAA520] text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {language === 'ar' ? 'في انتظار التوصيل' : 'Awaiting Delivery'}
             </button>
             <button
               onClick={() => setSelectedStatus('delivered')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectedStatus === 'delivered'
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedStatus === 'delivered'
                   ? 'bg-[#DAA520] text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {language === 'ar' ? 'تم التسليم' : 'Delivered'}
             </button>
@@ -415,8 +402,8 @@ export default function OrdersPage() {
               {language === 'ar' ? 'لا توجد طلبات' : 'No orders found'}
             </h3>
             <p className="mt-2 text-gray-600">
-              {language === 'ar' 
-                ? 'لم تقم بأي طلبات بعد. ابدأ التسوق الآن!' 
+              {language === 'ar'
+                ? 'لم تقم بأي طلبات بعد. ابدأ التسوق الآن!'
                 : 'You haven\'t placed any orders yet. Start shopping now!'
               }
             </p>
@@ -426,7 +413,7 @@ export default function OrdersPage() {
             {filteredOrders.map((order, orderIndex) => {
               const statusInfo = getStatusInfo(order.status);
               const StatusIcon = statusInfo.icon;
-              
+
               // Use a unique key combining order ID and orderNumber to avoid duplicates
               const uniqueOrderKey = order.id || order.orderNumber || `order-${orderIndex}`;
 
@@ -478,35 +465,35 @@ export default function OrdersPage() {
                       // Use a unique key combining order ID, item ID, and index to avoid duplicates
                       // Always include index to ensure uniqueness even if item.id is duplicated across orders
                       const uniqueItemKey = `${uniqueOrderKey}-item-${itemIndex}-${item.id || item.name || 'item'}`;
-                      
+
                       return (
-                      <div key={uniqueItemKey} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                        <img
-                          src={item.image}
-                          alt={language === 'ar' ? item.nameAr : item.name}
-                          className="w-16 h-16 object-cover rounded-lg"
-                        />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">
-                            {language === 'ar' ? item.nameAr : item.name}
-                          </h4>
-                          <p className="text-sm text-gray-500">
-                            {language === 'ar' ? 'الكمية:' : 'Quantity:'} {item.quantity}
-                          </p>
+                        <div key={uniqueItemKey} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                          <img
+                            src={item.image}
+                            alt={language === 'ar' ? item.nameAr : item.name}
+                            className="w-16 h-16 object-cover rounded-lg"
+                          />
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900">
+                              {language === 'ar' ? item.nameAr : item.name}
+                            </h4>
+                            <p className="text-sm text-gray-500">
+                              {language === 'ar' ? 'الكمية:' : 'Quantity:'} {item.quantity}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-gray-900">
+                              {formatPrice(item.price * item.quantity)}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-900">
-                            {formatPrice(item.price * item.quantity)}
-                          </p>
-                        </div>
-                      </div>
                       );
                     })}
                   </div>
 
                   {/* Order Actions */}
                   <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
-                    <button 
+                    <button
                       onClick={() => handleViewDetails(order)}
                       className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                     >
@@ -514,7 +501,7 @@ export default function OrdersPage() {
                       {language === 'ar' ? 'عرض التفاصيل' : 'View Details'}
                     </button>
                     {(order.trackingNumber || order.orderReference || order.orderNumber) && (
-                      <button 
+                      <button
                         onClick={() => handleTrackOrder(order)}
                         className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                       >
@@ -522,7 +509,7 @@ export default function OrdersPage() {
                         {language === 'ar' ? 'تتبع الطلب' : 'Track Order'}
                       </button>
                     )}
-                    <button 
+                    <button
                       onClick={() => handleDownloadInvoice(order)}
                       className="flex items-center gap-2 px-4 py-2 border border-[#DAA520] text-[#DAA520] rounded-lg hover:bg-[#DAA520] hover:text-white transition-colors"
                     >
@@ -634,7 +621,7 @@ export default function OrdersPage() {
                         <p className="text-gray-900 font-semibold">
                           {(() => {
                             const method = (selectedOrder.paymentMethod || '').toLowerCase();
-                            
+
                             // For COD, show with shipping payment method if available
                             if (method === 'cod' || method === 'cash_on_delivery') {
                               const shippingMethod = (selectedOrder.shippingPaymentMethod || '').toLowerCase();
@@ -669,26 +656,26 @@ export default function OrdersPage() {
                     // Always include index to ensure uniqueness even if item.id is duplicated
                     const orderKey = selectedOrder.id || selectedOrder.orderNumber || 'order';
                     const uniqueItemKey = `${orderKey}-detail-item-${itemIndex}-${item.id || item.name || 'item'}`;
-                    
+
                     return (
-                    <div key={uniqueItemKey} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                      <img
-                        src={item.image}
-                        alt={language === 'ar' ? item.nameAr : item.name}
-                        className="w-20 h-20 object-cover rounded-lg"
-                      />
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900">
-                          {language === 'ar' ? item.nameAr : item.name}
-                        </h4>
-                        <p className="text-sm text-gray-500">
-                          {language === 'ar' ? 'الكمية:' : 'Quantity:'} {item.quantity}
-                        </p>
+                      <div key={uniqueItemKey} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                        <img
+                          src={item.image}
+                          alt={language === 'ar' ? item.nameAr : item.name}
+                          className="w-20 h-20 object-cover rounded-lg"
+                        />
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">
+                            {language === 'ar' ? item.nameAr : item.name}
+                          </h4>
+                          <p className="text-sm text-gray-500">
+                            {language === 'ar' ? 'الكمية:' : 'Quantity:'} {item.quantity}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-gray-900">{formatPrice(item.price * item.quantity)}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-gray-900">{formatPrice(item.price * item.quantity)}</p>
-                      </div>
-                    </div>
                     );
                   })}
                 </div>
@@ -747,24 +734,24 @@ export default function OrdersPage() {
                   {(() => {
                     const shipping = selectedOrder.shippingPrice || 0;
                     let discount = selectedOrder.couponDiscount || 0;
-                    
+
                     // If coupon code exists but discount is 0 or missing, try to calculate it
                     if (selectedOrder.couponCode && discount === 0) {
                       // Calculate items total
                       const itemsTotal = selectedOrder.items?.reduce((sum: number, item: any) => {
                         return sum + ((item.price || 0) * (item.quantity || 0));
                       }, 0) || 0;
-                      
+
                       // Calculate discount from: itemsTotal + shipping - total
                       const calculatedDiscount = itemsTotal + shipping - selectedOrder.total;
                       if (calculatedDiscount > 0) {
                         discount = calculatedDiscount;
                       }
                     }
-                    
+
                     // Calculate subtotal: total - shipping + discount (to show original subtotal before discount)
                     const subtotal = selectedOrder.total - shipping + discount;
-                    
+
                     return (
                       <>
                         <div className="flex justify-between">
@@ -819,7 +806,7 @@ export default function OrdersPage() {
                     {(() => {
                       const method = (selectedOrder.paymentMethod || '').toLowerCase();
                       const shippingMethod = (selectedOrder.shippingPaymentMethod || '').toLowerCase();
-                      
+
                       // If COD and shipping payment method is specified, show detailed breakdown
                       if ((method === 'cod' || method === 'cash_on_delivery') && shippingMethod) {
                         return (
@@ -834,7 +821,7 @@ export default function OrdersPage() {
                                     {language === 'ar' ? 'الدفع عند الاستلام' : 'Cash on Delivery'}
                                   </p>
                                   <p className="text-sm text-green-700 mt-1">
-                                    {language === 'ar' 
+                                    {language === 'ar'
                                       ? `سيتم دفع ${formatPrice(selectedOrder.total - (selectedOrder.shippingPrice || 0))} نقداً عند الاستلام`
                                       : `${formatPrice(selectedOrder.total - (selectedOrder.shippingPrice || 0))} will be paid in cash upon delivery`}
                                   </p>
@@ -848,12 +835,12 @@ export default function OrdersPage() {
                                     {language === 'ar' ? 'دفع مصاريف الشحن:' : 'Shipping Payment:'}
                                   </p>
                                   <p className="text-lg font-bold text-blue-900">
-                                    {shippingMethod === 'instapay' 
+                                    {shippingMethod === 'instapay'
                                       ? (language === 'ar' ? 'إنستا باي' : 'InstaPay')
                                       : (language === 'ar' ? 'فودافون كاش' : 'Vodafone Cash')}
                                   </p>
                                   <p className="text-sm text-blue-700 mt-1">
-                                    {language === 'ar' 
+                                    {language === 'ar'
                                       ? `تم/سيتم دفع مصاريف الشحن مسبقاً`
                                       : `Shipping fees were/will be paid in advance`}
                                   </p>
@@ -871,7 +858,7 @@ export default function OrdersPage() {
                                   {language === 'ar' ? 'الدفع عند الاستلام' : 'Cash on Delivery'}
                                 </p>
                                 <p className="text-sm text-green-700 mt-1">
-                                  {language === 'ar' 
+                                  {language === 'ar'
                                     ? 'سيتم دفع المبلغ كاملاً نقداً عند الاستلام'
                                     : 'Full amount will be paid in cash upon delivery'}
                                 </p>
@@ -888,7 +875,7 @@ export default function OrdersPage() {
                                   {language === 'ar' ? 'إنستا باي' : 'InstaPay'}
                                 </p>
                                 <p className="text-sm text-blue-700 mt-1">
-                                  {language === 'ar' 
+                                  {language === 'ar'
                                     ? 'تم الدفع الكامل عبر إنستا باي'
                                     : 'Full payment via InstaPay'}
                                 </p>
@@ -905,7 +892,7 @@ export default function OrdersPage() {
                                   {language === 'ar' ? 'فودافون كاش' : 'Vodafone Cash'}
                                 </p>
                                 <p className="text-sm text-purple-700 mt-1">
-                                  {language === 'ar' 
+                                  {language === 'ar'
                                     ? 'تم الدفع الكامل عبر فودافون كاش'
                                     : 'Full payment via Vodafone Cash'}
                                 </p>
@@ -953,11 +940,11 @@ export default function OrdersPage() {
 
             <div className="p-6">
               <p className="text-gray-600 mb-6">
-                {language === 'ar' 
-                  ? 'اختر اللغة التي تريد تحميل الفاتورة بها:' 
+                {language === 'ar'
+                  ? 'اختر اللغة التي تريد تحميل الفاتورة بها:'
                   : 'Choose the language you want to download the invoice in:'}
               </p>
-              
+
               <div className="space-y-3">
                 <button
                   onClick={() => downloadInvoice('ar')}
@@ -965,7 +952,7 @@ export default function OrdersPage() {
                 >
                   <span>العربية</span>
                 </button>
-                
+
                 <button
                   onClick={() => downloadInvoice('en')}
                   className="w-full flex items-center justify-center gap-3 px-6 py-4 border-2 border-[#DAA520] text-[#DAA520] rounded-lg hover:bg-[#DAA520] hover:text-white transition-all duration-200 font-semibold"

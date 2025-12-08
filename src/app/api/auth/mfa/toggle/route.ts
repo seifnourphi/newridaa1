@@ -1,28 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyJWTFromRequestAsync } from '@/lib/jwt-validator';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
-
-// Helper function to verify user token
-async function verifyUserToken(request: NextRequest) {
-  return await verifyJWTFromRequestAsync(request);
-}
 
 // POST /api/auth/mfa/toggle - Toggle MFA (enable/disable)
 export async function POST(request: NextRequest) {
   try {
-    const userToken = await verifyUserToken(request);
-    
-    if (!userToken || !userToken.email) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Unauthorized'
-        },
-        { status: 401 }
-      );
-    }
-
+    // Forward request directly to backend - let backend handle authentication
+    // Backend has middleware to verify token from cookies or Authorization header
     const body = await request.json();
     const cookie = request.headers.get('cookie');
     const authHeader = request.headers.get('authorization');
@@ -40,7 +24,7 @@ export async function POST(request: NextRequest) {
         headers['Authorization'] = authHeader;
       }
       
-      // Call backend MFA toggle endpoint
+      // Call backend MFA toggle endpoint - backend will verify authentication
       const mfaResponse = await fetch(`${BACKEND_URL}/api/auth/mfa/toggle`, {
         method: 'POST',
         headers,
@@ -62,7 +46,6 @@ export async function POST(request: NextRequest) {
         );
       }
     } catch (err) {
-      console.error('Error toggling MFA:', err);
       return NextResponse.json(
         {
           success: false,
@@ -72,7 +55,6 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('MFA toggle error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

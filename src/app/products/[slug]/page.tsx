@@ -27,6 +27,7 @@ import {
 import Link from 'next/link';
 import { Footer } from '@/components/layout/Footer';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
+import { getImageSrc } from '@/lib/image-utils';
 
 interface Product {
   _id?: string;
@@ -1899,7 +1900,7 @@ export default function ProductDetailsPage() {
                     {review.user?.avatar ? (
                       <div className="w-12 h-12 rounded-full overflow-hidden mr-4 flex-shrink-0 border-2 border-gray-200 shadow-sm">
                         <img
-                          src={review.user.avatar}
+                          src={getImageSrc(review.user.avatar, '')}
                           alt={`${review.user.firstName} ${review.user.lastName}`}
                           className="w-full h-full object-cover"
                         />

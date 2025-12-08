@@ -27,16 +27,25 @@ export const getImageSrc = (
 
     // Handle string (legacy format or direct URL)
     if (typeof image === 'string') {
-        return image || fallback;
+        // Ensure it's a valid string and not empty
+        return image.trim() || fallback;
+    }
+
+    // Ensure image is an object (not array or other types)
+    if (typeof image !== 'object' || Array.isArray(image)) {
+        return fallback;
     }
 
     // Handle new Base64 format
     if (image.data && image.contentType) {
-        return `data:${image.contentType};base64,${image.data}`;
+        // Ensure data and contentType are strings
+        if (typeof image.data === 'string' && typeof image.contentType === 'string') {
+            return `data:${image.contentType};base64,${image.data}`;
+        }
     }
 
     // Handle legacy URL format
-    if (image.url) {
+    if (image.url && typeof image.url === 'string') {
         return image.url;
     }
 

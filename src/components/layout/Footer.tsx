@@ -82,7 +82,6 @@ export function Footer() {
           }
         }
       } catch (error) {
-        console.error('Error fetching store settings:', error);
         // Use cached data or defaults
         if (settingsCacheRef.current) {
           setStoreSettings(settingsCacheRef.current.data);
@@ -136,7 +135,6 @@ export function Footer() {
           }
         }
       } catch (error) {
-        console.error('Error fetching WhatsApp number:', error);
         // Use cached data or defaults
         if (whatsappCacheRef.current) {
           setWhatsappNumber(whatsappCacheRef.current.data);

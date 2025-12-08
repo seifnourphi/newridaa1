@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useCSRF } from '@/hooks/useCSRF';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { getImageSrc } from '@/lib/image-utils';
 import { 
   Users, 
   Search, 
@@ -106,12 +107,11 @@ export default function UsersManagementPage() {
         
         setStats({ total, active, inactive, verified, unverified, subscribed, unsubscribed });
       } else {
-        console.error('Failed to fetch users:', data.error);
         setUsers([]);
         setFilteredUsers([]);
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
+      // Silent error handling
     } finally {
       setIsLoading(false);
     }
@@ -163,7 +163,6 @@ export default function UsersManagementPage() {
   // Toggle user active status
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     if (!csrfToken) {
-      console.error('CSRF token not available');
       alert(language === 'ar' 
         ? 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.'
         : 'Your session has expired. Please sign in again.'
@@ -194,11 +193,6 @@ export default function UsersManagementPage() {
           // If response is not JSON, use status text
           errorMessage = response.statusText || errorMessage;
         }
-        console.error('Failed to update user status:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorMessage
-        });
         alert(language === 'ar' 
           ? `فشل تحديث حالة المستخدم: ${errorMessage}`
           : `Failed to update user status: ${errorMessage}`
@@ -219,14 +213,12 @@ export default function UsersManagementPage() {
           setSelectedUser({ ...selectedUser, isActive: newStatus });
         }
       } else {
-        console.error('Failed to update user status:', data.error);
         alert(language === 'ar' 
           ? 'فشل تحديث حالة المستخدم: ' + (data.error || 'خطأ غير معروف')
           : 'Failed to update user status: ' + (data.error || 'Unknown error')
         );
       }
     } catch (error) {
-      console.error('Error updating user status:', error);
       alert(language === 'ar' 
         ? 'حدث خطأ أثناء تحديث حالة المستخدم'
         : 'An error occurred while updating user status'
@@ -241,7 +233,6 @@ export default function UsersManagementPage() {
     }
 
     if (!csrfToken) {
-      console.error('CSRF token not available');
       alert(language === 'ar' 
         ? 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.'
         : 'Your session has expired. Please sign in again.'
@@ -263,11 +254,9 @@ export default function UsersManagementPage() {
 
       if (response.ok) {
         setUsers(users.filter(user => user.id !== userId));
-      } else {
-        console.error('Failed to delete user');
       }
     } catch (error) {
-      console.error('Error deleting user:', error);
+      // Silent error handling
     }
   };
 
@@ -565,7 +554,7 @@ export default function UsersManagementPage() {
                         <div className="w-10 h-10 bg-[#DAA520] rounded-full flex items-center justify-center text-white text-sm font-semibold">
                           {user.avatar ? (
                             <img 
-                              src={user.avatar} 
+                              src={getImageSrc(user.avatar, '')} 
                               alt={`${user.firstName} ${user.lastName}`}
                               className="w-full h-full rounded-full object-cover"
                             />
@@ -660,7 +649,6 @@ export default function UsersManagementPage() {
                                 setShowUserModal(true);
                               }
                             } catch (error) {
-                              console.error('Error fetching user details:', error);
                               // Fallback to basic user data
                               setSelectedUser(user);
                               setShowUserModal(true);
@@ -718,7 +706,7 @@ export default function UsersManagementPage() {
                   <div className="w-20 h-20 bg-[#DAA520] rounded-full flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
                     {selectedUser.avatar ? (
                       <img 
-                        src={selectedUser.avatar} 
+                        src={getImageSrc(selectedUser.avatar, '')} 
                         alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
                         className="w-full h-full rounded-full object-cover"
                         onError={(e) => {

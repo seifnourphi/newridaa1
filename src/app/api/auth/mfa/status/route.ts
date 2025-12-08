@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         });
       }
     } catch (err) {
-      console.error('Error checking MFA status:', err);
+      // Silent fail - return default
     }
 
     // Default response - MFA not enabled
@@ -64,7 +64,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('MFA status error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

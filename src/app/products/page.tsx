@@ -211,11 +211,10 @@ export default function ProductsPage() {
         }) || [];
         setProducts(transformedProducts);
       } else {
-        console.error('Failed to fetch products:', response.status);
         setProducts([]);
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
+      // Silent error handling
       setProducts([]);
     } finally {
       setIsLoading(false);
@@ -231,10 +230,10 @@ export default function ProductsPage() {
         const data = await response.json();
         const fetchedCategories = data.categories || data.data?.categories || [];
         setAllCategories(fetchedCategories);
+        }
+      } catch (error) {
+        // Silent error handling
       }
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
   };
 
   // Filter categories to only show those with products (dynamically)

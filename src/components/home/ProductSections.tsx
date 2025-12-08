@@ -151,7 +151,7 @@ export function ProductSections({ products }: ProductSectionsProps) {
           setCategories(data.categories || []);
         }
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        // Silent error handling
       }
     };
     

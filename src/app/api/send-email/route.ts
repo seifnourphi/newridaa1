@@ -30,15 +30,6 @@ export async function POST(request: NextRequest) {
     const cookie = request.headers.get('cookie');
     const authHeader = request.headers.get('authorization');
     
-    // Debug: log cookie info
-    console.log('Send email - Cookie check:', {
-      hasCookie: !!cookie,
-      cookieLength: cookie?.length,
-      hasAdminToken: cookie?.includes('adminToken'),
-      hasToken: cookie?.includes('token'),
-      hasAuthHeader: !!authHeader
-    });
-    
     try {
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -75,7 +66,6 @@ export async function POST(request: NextRequest) {
         );
       }
     } catch (err) {
-      console.error('Error sending email:', err);
       return NextResponse.json(
         {
           success: false,
@@ -86,7 +76,6 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Send email error:', error);
     return NextResponse.json(
       { 
         success: false,

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { User, LogIn, UserPlus, Settings, LogOut, ChevronDown, Mail, Shield, ShoppingBag, UserCircle, Truck } from 'lucide-react';
+import { getImageSrc } from '@/lib/image-utils';
 
 export function AccountToggle() {
   const { language } = useLanguage();
@@ -58,7 +59,7 @@ export function AccountToggle() {
             <div className="w-7 h-7 bg-gray-600 rounded-full flex items-center justify-center text-gray-300 text-xs font-bold shadow-sm overflow-hidden">
               {user.avatar ? (
                 <img 
-                  src={user.avatar} 
+                  src={getImageSrc(user.avatar, '')} 
                   alt={getUserDisplayName()}
                   className="w-full h-full rounded-full object-cover"
                   onError={(e) => {
@@ -104,9 +105,21 @@ export function AccountToggle() {
                   <div className="w-14 h-14 bg-gradient-to-br from-[#DAA520] to-[#B8860B] rounded-full flex items-center justify-center text-white text-lg font-bold shadow-lg">
                     {user.avatar ? (
                       <img 
-                        src={user.avatar} 
+                        src={getImageSrc(user.avatar, '')} 
                         alt={getUserDisplayName()}
                         className="w-full h-full rounded-full object-cover"
+                        onError={(e) => {
+                          // Hide image on error, show initials instead
+                          const img = e.currentTarget;
+                          img.style.display = 'none';
+                          const parent = img.parentElement;
+                          if (parent && !parent.querySelector('.avatar-fallback-large')) {
+                            const fallback = document.createElement('span');
+                            fallback.className = 'avatar-fallback-large text-white text-lg font-bold';
+                            fallback.textContent = getUserInitials();
+                            parent.appendChild(fallback);
+                          }
+                        }}
                       />
                     ) : (
                       getUserInitials()

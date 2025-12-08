@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/components/providers/LanguageProvider';
@@ -28,9 +28,18 @@ export default function LoginPage() {
   const [tempToken, setTempToken] = useState<string | null>(null);
   const [isInsecureConnection, setIsInsecureConnection] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false); // Prevent multiple verification attempts
+  const verifyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (verifyTimeoutRef.current) {
+        clearTimeout(verifyTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Prevent navigation when MFA is required
@@ -166,6 +175,9 @@ export default function LoginPage() {
   };
 
   const handleMfaCodeChange = (index: number, value: string) => {
+    // Prevent changes if already verifying
+    if (isVerifying) return;
+
     // Only allow single digit
     if (value.length > 1) {
       // If user pastes multiple digits, take only the first one
@@ -190,25 +202,26 @@ export default function LoginPage() {
     // Clear errors when user starts typing
     if (error) setError('');
 
+    // Clear any existing timeout
+    if (verifyTimeoutRef.current) {
+      clearTimeout(verifyTimeoutRef.current);
+      verifyTimeoutRef.current = null;
+    }
+
     // Auto-verify when all 6 digits are entered
     // Check if all 6 digits are filled
     const allDigitsFilled = newCode.length === 6 && 
                            newCode.every(digit => digit !== '' && digit !== null && digit !== undefined);
     
-    if (allDigitsFilled) {
-      // Wait a bit to ensure state update is complete
-      setTimeout(() => {
-        // Use the updated state from closure
+    if (allDigitsFilled && !isVerifying) {
+      // Debounce: Wait 800ms after user stops typing before auto-verifying
+      // This prevents multiple rapid requests
+      verifyTimeoutRef.current = setTimeout(() => {
         const currentCode = newCode.join('');
-        if (currentCode.length === 6 && /^\d{6}$/.test(currentCode)) {
-          // Update state and verify with the code directly
-          setMfaCode(newCode);
-          // Then verify with the code directly to avoid state sync issues
-          setTimeout(() => {
+        if (currentCode.length === 6 && /^\d{6}$/.test(currentCode) && !isVerifying) {
             handleMfaVerify(false, currentCode); // Auto-verify, don't show error, pass code directly
-          }, 100);
         }
-      }, 300);
+      }, 800);
     }
   };
 
@@ -220,6 +233,11 @@ export default function LoginPage() {
   };
 
   const handleMfaVerify = async (showError = false, codeOverride?: string) => {
+    // Prevent multiple simultaneous verification attempts
+    if (isVerifying) {
+      return;
+    }
+
     const code = codeOverride || mfaCode.join('');
     
     // Validate code length
@@ -238,6 +256,13 @@ export default function LoginPage() {
       return;
     }
 
+    // Clear any pending timeout
+    if (verifyTimeoutRef.current) {
+      clearTimeout(verifyTimeoutRef.current);
+      verifyTimeoutRef.current = null;
+    }
+
+    setIsVerifying(true);
     setIsLoading(true);
     setError('');
 
@@ -266,6 +291,7 @@ export default function LoginPage() {
       setError(language === 'ar' ? 'حدث خطأ أثناء التحقق' : 'Verification error occurred');
     } finally {
       setIsLoading(false);
+      setIsVerifying(false);
     }
   };
 

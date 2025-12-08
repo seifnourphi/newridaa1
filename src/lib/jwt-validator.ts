@@ -53,9 +53,6 @@ export async function verifyJWTFromRequestAsync(request: NextRequest): Promise<a
   }
 
   if (!USER_JWT_SECRET.length) {
-    console.warn("[JWT Validator] USER_JWT_SECRET is missing.");
-    console.warn("[JWT Validator] Checked USER_JWT_SECRET:", process.env.USER_JWT_SECRET ? 'exists' : 'missing');
-    console.warn("[JWT Validator] Checked JWT_SECRET:", process.env.JWT_SECRET ? 'exists' : 'missing');
     return null;
   }
 
@@ -73,21 +70,8 @@ export async function verifyJWTFromRequestAsync(request: NextRequest): Promise<a
     // if (audience) verifyOptions.audience = audience;
 
     const result = await jwtVerify(userToken, USER_JWT_SECRET, verifyOptions);
-    
-    // Debug: log successful verification
-    console.log('[JWT Validator] Token verified successfully. Payload:', {
-      userId: result.payload.userId,
-      email: result.payload.email,
-      hasUserId: !!result.payload.userId,
-      hasEmail: !!result.payload.email
-    });
-
     return result.payload;
   } catch (err: any) {
-    console.error('[JWT Validator] Token verification failed:', err?.message);
-    console.error('[JWT Validator] Error type:', err?.name);
-    console.error('[JWT Validator] Token length:', userToken?.length);
-    console.error('[JWT Validator] Secret length:', USER_JWT_SECRET.length);
     return null;
   }
 }

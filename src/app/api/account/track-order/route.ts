@@ -5,12 +5,10 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
 // GET /api/account/track-order - Track order (proxy to backend)
 export async function GET(request: NextRequest) {
   try {
-    console.log('[Track Order Route] Request received');
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const tracking = searchParams.get('tracking');
     const order = searchParams.get('order');
-    console.log('[Track Order Route] Query params:', { tracking, order });
 
     // Build query string for backend
     const queryParams = new URLSearchParams();
@@ -79,7 +77,6 @@ export async function GET(request: NextRequest) {
         data = text ? { error: text } : { error: 'Unknown error' };
       }
     } catch (parseError) {
-      console.error('[Track Order API] Failed to parse response:', parseError);
       data = { 
         success: false,
         error: 'Failed to parse response from server' 
@@ -92,7 +89,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Track order API error:', error);
     return NextResponse.json(
       { 
         success: false,

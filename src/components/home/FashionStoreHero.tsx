@@ -781,11 +781,6 @@ export function FashionStoreHero({ products, onLoadingChange }: FashionStoreHero
                         .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
                         .map((product, index) => {
                           // Debug: Log product data
-                          if (process.env.NODE_ENV === 'development' && index === 0) {
-                            console.log('[SINGLE Product] Product data:', product);
-                            console.log('[SINGLE Product] Product price:', product.price);
-                            console.log('[SINGLE Product] Product price type:', typeof product.price);
-                          }
                           return (
                         <div 
                           key={index} 
@@ -930,11 +925,6 @@ export function FashionStoreHero({ products, onLoadingChange }: FashionStoreHero
                             ]
                         ).map((product, productIndex) => {
                           // Debug: Log product data
-                          if (process.env.NODE_ENV === 'development' && productIndex === 0) {
-                            console.log('[GRID Product] Product data:', product);
-                            console.log('[GRID Product] Product price:', (product as any).price);
-                            console.log('[GRID Product] Product price type:', typeof (product as any).price);
-                          }
                           return (
                             <div 
                               key={productIndex}

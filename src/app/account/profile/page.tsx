@@ -18,6 +18,7 @@ import { useToast } from '@/components/providers/ToastProvider';
 import { useCSRF } from '@/hooks/useCSRF';
 import { hasForbiddenChars, escapeHtml } from '@/lib/client-validation';
 import { ImageCropper } from '@/components/ui/ImageCropper';
+import { getImageSrc } from '@/lib/image-utils';
 
 interface UserProfile {
   firstName: string;
@@ -117,11 +118,14 @@ export default function ProfilePage() {
               : (user?.emailVerified || false);
             
             // Update user in AuthProvider if emailVerified changed
+            // Use setTimeout to avoid setState during render
             if (user && user.emailVerified !== emailVerifiedValue) {
-              updateUser({
-                ...user,
-                emailVerified: emailVerifiedValue
-              });
+              setTimeout(() => {
+                updateUser({
+                  ...user,
+                  emailVerified: emailVerifiedValue
+                });
+              }, 0);
             }
             
             const profileDataObj = {
@@ -417,14 +421,12 @@ export default function ProfilePage() {
     reader.onload = (e) => {
       const imageUrl = e.target?.result as string;
       if (imageUrl && imageUrl.startsWith('data:image/')) {
-        console.log('Image loaded successfully, type:', file.type, 'length:', imageUrl.length);
         setCropImage(imageUrl);
         // Use setTimeout to ensure state is set before showing cropper
         setTimeout(() => {
           setShowCropper(true);
         }, 50);
       } else {
-        console.error('Invalid image data:', imageUrl?.substring(0, 50));
         showToast(
           language === 'ar' ? 'فشل تحميل الصورة' : 'Failed to load image',
           'error',
@@ -432,16 +434,12 @@ export default function ProfilePage() {
         );
       }
     };
-    reader.onerror = (error) => {
-      console.error('Error reading file:', error);
+    reader.onerror = () => {
       showToast(
         language === 'ar' ? 'حدث خطأ أثناء قراءة الصورة' : 'Error reading image',
         'error',
         3000
       );
-    };
-    reader.onloadstart = () => {
-      console.log('Starting to read file...');
     };
     reader.readAsDataURL(file);
     
@@ -661,11 +659,8 @@ export default function ProfilePage() {
                       (() => {
                         const avatarToShow = pendingAvatarUrl || profile.avatar;
                         if (!avatarToShow) return '';
-                        return avatarToShow.startsWith('http') || avatarToShow.startsWith('https') 
-                          ? avatarToShow 
-                          : avatarToShow.startsWith('/') 
-                          ? avatarToShow 
-                          : `/uploads/avatars/${avatarToShow.replace(/^\/uploads\/avatars\//, '')}`;
+                        // Use getImageSrc to handle both Base64 object and string URL
+                        return getImageSrc(avatarToShow, '');
                       })()
                     } 
                     alt="Profile" 

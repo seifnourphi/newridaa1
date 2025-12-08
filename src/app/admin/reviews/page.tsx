@@ -5,6 +5,7 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useCSRF } from '@/hooks/useCSRF';
 import { useToast } from '@/components/providers/ToastProvider';
+import { getImageSrc } from '@/lib/image-utils';
 import { 
   MessageSquare, 
   Star, 
@@ -82,7 +83,7 @@ export default function ReviewsManagementPage() {
         setReviews([]); // Ensure reviews is always an array
       }
     } catch (error) {
-      console.error('Error fetching reviews:', error);
+      // Silent error handling
     } finally {
       setIsLoading(false);
     }
@@ -132,8 +133,11 @@ export default function ReviewsManagementPage() {
             prevReviews.map(r => r.id === review.id ? { ...r, isActive: updatedReview.isActive } : r)
           );
           // Also update selected review if it's the same
+          // Use setTimeout to avoid setState during render
           if (selectedReview?.id === review.id) {
-            setSelectedReview({ ...selectedReview, isActive: updatedReview.isActive });
+            setTimeout(() => {
+              setSelectedReview({ ...selectedReview, isActive: updatedReview.isActive });
+            }, 0);
           }
           
           // Show success message
@@ -164,7 +168,6 @@ export default function ReviewsManagementPage() {
         showToast(errorMessage, 'error', 4000);
       }
     } catch (error) {
-      console.error('Error toggling review status:', error);
       showToast(language === 'ar' ? 'حدث خطأ أثناء تحديث الحالة' : 'Error updating status', 'error', 4000);
     }
   };
@@ -220,7 +223,6 @@ export default function ReviewsManagementPage() {
         showToast(errorMessage, 'error', 4000);
       }
     } catch (error) {
-      console.error('Error deleting review:', error);
       showToast(language === 'ar' ? 'حدث خطأ أثناء الحذف' : 'Error deleting review', 'error', 4000);
     } finally {
       setShowDeleteDialog(false);
@@ -433,22 +435,26 @@ export default function ReviewsManagementPage() {
                     <tr key={review.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          {review.user.avatar ? (
+                          {review.user && review.user.avatar ? (
                             <img
-                              src={review.user.avatar}
-                              alt={`${review.user.firstName} ${review.user.lastName}`}
+                              src={getImageSrc(review.user.avatar, '')}
+                              alt={`${review.user.firstName || ''} ${review.user.lastName || ''}`}
                               className="w-10 h-10 rounded-full mr-3"
                             />
+                          ) : review.user ? (
+                            <div className="w-10 h-10 rounded-full bg-[#DAA520] flex items-center justify-center text-white font-semibold mr-3">
+                              {(review.user.firstName?.charAt(0) || 'U')}{(review.user.lastName?.charAt(0) || '')}
+                            </div>
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-[#DAA520] flex items-center justify-center text-white font-semibold mr-3">
-                              {review.user.firstName.charAt(0)}{review.user.lastName.charAt(0)}
+                              U
                             </div>
                           )}
                           <div>
                             <div className="text-sm font-medium text-gray-900">
-                              {review.user.firstName} {review.user.lastName}
+                              {review.user ? `${review.user.firstName || ''} ${review.user.lastName || ''}`.trim() || 'Unknown User' : 'Unknown User'}
                             </div>
-                            <div className="text-sm text-gray-500">{review.user.email}</div>
+                            <div className="text-sm text-gray-500">{review.user?.email || 'N/A'}</div>
                           </div>
                         </div>
                       </td>
@@ -557,22 +563,26 @@ export default function ReviewsManagementPage() {
                       {language === 'ar' ? 'المستخدم' : 'User'}
                     </h3>
                     <div className="flex items-center gap-4">
-                      {selectedReview.user.avatar ? (
+                      {selectedReview.user && selectedReview.user.avatar ? (
                         <img
-                          src={selectedReview.user.avatar}
-                          alt={`${selectedReview.user.firstName} ${selectedReview.user.lastName}`}
+                          src={getImageSrc(selectedReview.user.avatar, '')}
+                          alt={`${selectedReview.user.firstName || ''} ${selectedReview.user.lastName || ''}`}
                           className="w-16 h-16 rounded-full"
                         />
+                      ) : selectedReview.user ? (
+                        <div className="w-16 h-16 rounded-full bg-[#DAA520] flex items-center justify-center text-white font-semibold text-xl">
+                          {(selectedReview.user.firstName?.charAt(0) || 'U')}{(selectedReview.user.lastName?.charAt(0) || '')}
+                        </div>
                       ) : (
                         <div className="w-16 h-16 rounded-full bg-[#DAA520] flex items-center justify-center text-white font-semibold text-xl">
-                          {selectedReview.user.firstName.charAt(0)}{selectedReview.user.lastName.charAt(0)}
+                          U
                         </div>
                       )}
                       <div>
                         <div className="text-lg font-semibold text-gray-900">
-                          {selectedReview.user.firstName} {selectedReview.user.lastName}
+                          {selectedReview.user ? `${selectedReview.user.firstName || ''} ${selectedReview.user.lastName || ''}`.trim() || 'Unknown User' : 'Unknown User'}
                         </div>
-                        <div className="text-sm text-gray-500">{selectedReview.user.email}</div>
+                        <div className="text-sm text-gray-500">{selectedReview.user?.email || 'N/A'}</div>
                       </div>
                     </div>
                   </div>

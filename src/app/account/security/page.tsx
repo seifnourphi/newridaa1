@@ -8,15 +8,14 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useCSRF } from '@/hooks/useCSRF';
 import { PasswordStrengthBar } from '@/components/auth/PasswordStrengthBar';
 import { validatePassword, hasForbiddenChars } from '@/lib/client-validation';
-import { 
-  Shield, 
-  Lock, 
-  Key, 
-  Eye, 
+import {
+  Shield,
+  Lock,
+  Key,
+  Eye,
   EyeOff,
   CheckCircle,
   AlertCircle,
-  Save,
   RefreshCw,
   Edit3,
   AlertTriangle,
@@ -46,8 +45,60 @@ export default function SecurityPage() {
   const { csrfToken, loading: csrfLoading } = useCSRF();
   const [mounted, setMounted] = useState(false);
 
+  const fetchMfaStatus = async () => {
+    setIsLoadingMfa(true);
+    try {
+      let token: string | null = null;
+      if (typeof window !== 'undefined') {
+        token = localStorage.getItem('token');
+      }
+      if (!token && typeof document !== 'undefined') {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+          const [name, value] = cookie.trim().split('=');
+          if (name === 'token' || name === '__Host-token') {
+            token = decodeURIComponent(value);
+            break;
+          }
+        }
+      }
+      const makeRequest = async (authToken: string | null) => {
+        return fetch('/api/auth/mfa/status', {
+          method: 'GET',
+          headers: {
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+      };
+      let response = await makeRequest(token);
+      if (response.status === 401 && token) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+        }
+        response = await makeRequest(null);
+      }
+      if (response.ok) {
+        const data = await response.json();
+        setMfaEnabled(data.mfaEnabled || false);
+      } else {
+        // If not authenticated, default to false but don't show error
+        setMfaEnabled(false);
+      }
+    } catch (error) {
+      // Don't show error toast on initial load - just default to false
+      setMfaEnabled(false);
+    } finally {
+      setIsLoadingMfa(false);
+    }
+  };
+
   useEffect(() => {
     setMounted(true);
+    // Fetch MFA status on mount, regardless of user availability
+    // The backend will handle authentication
+    fetchMfaStatus();
   }, []);
   const [securitySettings, setSecuritySettings] = useState<SecuritySettings>({
     twoFactorEnabled: false,
@@ -74,23 +125,23 @@ export default function SecurityPage() {
 
   // Form states
   const [editingField, setEditingField] = useState<string | null>(null);
-  
+
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
-  
+
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
     confirm: false
   });
-  
+
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [passwordError, setPasswordError] = useState('');
-  
+
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -108,13 +159,13 @@ export default function SecurityPage() {
     type: 'confirm',
     confirmText: '',
     cancelText: '',
-    onConfirm: () => {},
-    onCancel: () => {},
+    onConfirm: () => { },
+    onCancel: () => { },
   });
-  
+
   // MFA states
   const [mfaEnabled, setMfaEnabled] = useState(false);
-  const [isLoadingMfa, setIsLoadingMfa] = useState(false);
+  const [isLoadingMfa, setIsLoadingMfa] = useState(true); // Start as true to prevent showing wrong button
   const [mfaSetupData, setMfaSetupData] = useState<{
     qrCode: string;
     secret: string;
@@ -127,27 +178,6 @@ export default function SecurityPage() {
     setEditingField(field);
   };
 
-  const handleSaveField = async (field: string) => {
-    setIsSaving(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setEditingField(null);
-      showToast(
-        language === 'ar' ? 'تم حفظ التغييرات بنجاح!' : 'Changes saved successfully!',
-        'success'
-      );
-    } catch (error) {
-      // Error saving field - no sensitive data logged
-      showToast(
-        language === 'ar' ? 'حدث خطأ أثناء حفظ التغييرات' : 'An error occurred while saving changes',
-        'error'
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleCancelEdit = () => {
     setEditingField(null);
   };
@@ -156,7 +186,7 @@ export default function SecurityPage() {
     setConfirmDialog({
       isOpen: true,
       title: language === 'ar' ? 'تأكيد العملية' : 'Confirm Action',
-      message: language === 'ar' 
+      message: language === 'ar'
         ? 'سيتم فتح نافذة تغيير كلمة المرور. بعد تغيير كلمة المرور بنجاح، سيتم تسجيل الخروج من جميع الأجهزة تلقائياً.'
         : 'A password change window will open. After successfully changing your password, you will be logged out from all devices automatically.',
       type: 'alert',
@@ -167,10 +197,10 @@ export default function SecurityPage() {
         // Open change password modal first
         // The password change will handle logout-all automatically after success
         setEditingField('password');
-        
+
         // Show info message
         showToast(
-          language === 'ar' 
+          language === 'ar'
             ? 'يرجى تغيير كلمة المرور الآن. بعد التغيير، سيتم تسجيل الخروج من جميع الأجهزة.'
             : 'Please change your password now. After changing, you will be logged out from all devices.',
           'info',
@@ -191,8 +221,8 @@ export default function SecurityPage() {
 
     if (csrfLoading || !csrfToken) {
       throw new Error(
-        language === 'ar' 
-          ? 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.' 
+        language === 'ar'
+          ? 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.'
           : 'Your session has expired. Please sign in again.'
       );
     }
@@ -220,8 +250,8 @@ export default function SecurityPage() {
       // Silently handle 401 errors - user may not be logged in
       if (response.status === 401) {
         throw new Error(
-          language === 'ar' 
-            ? 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.' 
+          language === 'ar'
+            ? 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.'
             : 'Your session has expired. Please sign in again.'
         );
       }
@@ -237,7 +267,7 @@ export default function SecurityPage() {
     if (!validation.valid) {
       return {
         valid: false,
-        error: language === 'ar' 
+        error: language === 'ar'
           ? validation.error || 'كلمة المرور غير صحيحة'
           : validation.error || 'Invalid password format'
       };
@@ -247,7 +277,7 @@ export default function SecurityPage() {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Check if passwords match
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setPasswordError(language === 'ar' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match');
@@ -263,8 +293,8 @@ export default function SecurityPage() {
 
     // Check if new password is the same as current password
     if (passwordForm.currentPassword === passwordForm.newPassword) {
-      setPasswordError(language === 'ar' 
-        ? 'كلمة المرور الجديدة يجب أن تكون مختلفة عن كلمة المرور الحالية' 
+      setPasswordError(language === 'ar'
+        ? 'كلمة المرور الجديدة يجب أن تكون مختلفة عن كلمة المرور الحالية'
         : 'New password must be different from the current password'
       );
       return;
@@ -281,16 +311,16 @@ export default function SecurityPage() {
         confirmPassword: ''
       });
       setEditingField(null);
-      
+
       // Show success toast
       showToast(
-        language === 'ar' 
-          ? 'تم تغيير كلمة المرور بنجاح! سيتم تسجيل الخروج الآن.' 
+        language === 'ar'
+          ? 'تم تغيير كلمة المرور بنجاح! سيتم تسجيل الخروج الآن.'
           : 'Password changed successfully! You will be logged out now.',
         'success',
         3000
       );
-      
+
       // Logout and redirect to login
       setTimeout(() => {
         if (typeof window !== 'undefined') {
@@ -302,22 +332,22 @@ export default function SecurityPage() {
       }, 3000);
     } catch (error: any) {
       const errorMessage = error.message || '';
-      
+
       // Map common error messages to Arabic/English
-      if (errorMessage.includes('different from the current password') || 
-          errorMessage.includes('must be different')) {
-        setPasswordError(language === 'ar' 
-          ? 'كلمة المرور الجديدة يجب أن تكون مختلفة عن كلمة المرور الحالية' 
+      if (errorMessage.includes('different from the current password') ||
+        errorMessage.includes('must be different')) {
+        setPasswordError(language === 'ar'
+          ? 'كلمة المرور الجديدة يجب أن تكون مختلفة عن كلمة المرور الحالية'
           : 'New password must be different from the current password'
         );
       } else if (errorMessage.includes('incorrect') || errorMessage.includes('Current password')) {
-        setPasswordError(language === 'ar' 
-          ? 'كلمة المرور الحالية غير صحيحة' 
+        setPasswordError(language === 'ar'
+          ? 'كلمة المرور الحالية غير صحيحة'
           : 'Current password is incorrect'
         );
       } else {
-        setPasswordError(errorMessage || (language === 'ar' 
-          ? 'حدث خطأ أثناء تغيير كلمة المرور' 
+        setPasswordError(errorMessage || (language === 'ar'
+          ? 'حدث خطأ أثناء تغيير كلمة المرور'
           : 'An error occurred while changing password'
         ));
       }
@@ -326,82 +356,31 @@ export default function SecurityPage() {
     }
   };
 
-  const handleSecuritySettingsChange = async () => {
-    setIsSaving(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      showToast(
-        language === 'ar' ? 'تم حفظ إعدادات الأمان!' : 'Security settings saved!',
-        'success'
-      );
-    } catch (error) {
-      // Error saving security settings - no sensitive data logged
-      showToast(
-        language === 'ar' ? 'حدث خطأ أثناء حفظ الإعدادات' : 'An error occurred while saving settings',
-        'error'
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
-  useEffect(() => {
-    // Only fetch MFA status if user is logged in
-    if (!user) return;
-    
-    const fetchMfaStatus = async () => {
-      try {
-        // Try to get token from cookies first (preferred), then localStorage
-        const cookieToken = document.cookie.split('token=')[1]?.split(';')[0] || 
-                          document.cookie.split('__Host-token=')[1]?.split(';')[0];
-        const localStorageToken = localStorage.getItem('token');
-        const token = cookieToken || localStorageToken;
-        
-        if (!token) return;
 
-        const response = await fetch('/api/auth/mfa/status', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        }).catch((error) => {
-          // Silently catch network errors - don't log to console
-          return null;
-        });
-
-        if (!response) return; // Network error, silently return
-
-        if (response.ok) {
-          try {
-            const data = await response.json();
-            setMfaEnabled(data.mfaEnabled || false);
-          } catch (e) {
-            // Silently handle JSON parse errors
-          }
-        } else if (response.status === 401) {
-          // Silently handle 401 errors - token may be expired or invalid
-          // Don't show error to user, just don't update MFA status
-          // This is expected if MFA endpoints require special permissions
-          return;
-        }
-        // Silently ignore other errors
-      } catch (error) {
-        // MFA status fetch error - silently handle, don't log to console
-        // This prevents console errors when MFA is not available
-      }
-    };
-
-    fetchMfaStatus();
-  }, [user]);
 
   const handleMfaSetup = async () => {
     setIsLoadingMfa(true);
     try {
-      const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0] || document.cookie.split('__Host-token=')[1]?.split(';')[0];
-      
+      let token: string | null = null;
+
+      // Try localStorage first
+      if (typeof window !== 'undefined') {
+        token = localStorage.getItem('token');
+      }
+
+      // If not found, try cookies
+      if (!token && typeof document !== 'undefined') {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+          const [name, value] = cookie.trim().split('=');
+          if (name === 'token' || name === '__Host-token') {
+            token = decodeURIComponent(value);
+            break;
+          }
+        }
+      }
+
       if (!token) {
         showToast(
           language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first',
@@ -411,17 +390,30 @@ export default function SecurityPage() {
         return;
       }
 
-      const response = await fetch('/api/auth/mfa/setup', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      // Helper to make request
+      const makeSetupRequest = async (authToken: string | null) => {
+        return fetch('/api/auth/mfa/setup', {
+          method: 'GET',
+          headers: {
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+      };
+
+      let response = await makeSetupRequest(token);
+
+      // If 401 and we used a token, retry without header (use cookie)
+      if (response.status === 401 && token) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+        }
+        response = await makeSetupRequest(null);
+      }
 
       const data = await response.json();
-      
+
       if (response.ok) {
         // Check if response indicates authentication is required
         if (data.requiresAuth) {
@@ -432,7 +424,7 @@ export default function SecurityPage() {
           setIsLoadingMfa(false);
           return;
         }
-        
+
         // Check if MFA is already enabled
         if (data.mfaEnabled) {
           setMfaEnabled(true);
@@ -443,7 +435,7 @@ export default function SecurityPage() {
           setIsLoadingMfa(false);
           return;
         }
-        
+
         // Check if we have QR code and secret for setup
         if (data.qrCode && data.manualEntryKey) {
           setMfaSetupData({
@@ -455,7 +447,7 @@ export default function SecurityPage() {
           setIsLoadingMfa(false);
         } else {
           // Show error message
-          const errorMessage = data.error || 
+          const errorMessage = data.error ||
             (language === 'ar' ? 'فشل في إعداد المصادقة الثنائية' : 'Failed to setup MFA');
           showToast(errorMessage, 'error');
           setIsLoadingMfa(false);
@@ -494,7 +486,7 @@ export default function SecurityPage() {
 
   const handleMfaVerify = async () => {
     const code = mfaVerificationCode.join('');
-    
+
     // Only show error if user manually clicked verify button with incomplete code
     // Don't show error during auto-verify (when typing)
     if (code.length !== 6) {
@@ -505,7 +497,25 @@ export default function SecurityPage() {
 
     setIsLoadingMfa(true);
     try {
-      const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0];
+      let token: string | null = null;
+
+      // Try localStorage first
+      if (typeof window !== 'undefined') {
+        token = localStorage.getItem('token');
+      }
+
+      // If not found, try cookies
+      if (!token && typeof document !== 'undefined') {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+          const [name, value] = cookie.trim().split('=');
+          if (name === 'token' || name === '__Host-token') {
+            token = decodeURIComponent(value);
+            break;
+          }
+        }
+      }
+
       if (!token || !mfaSetupData) {
         showToast(
           language === 'ar' ? 'بيانات الإعداد غير موجودة' : 'Setup data not found',
@@ -533,14 +543,27 @@ export default function SecurityPage() {
         mfaSecretId: mfaSetupData.mfaSecretId,
       };
 
-      const response = await fetch('/api/auth/mfa/verify-setup', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+      // Helper to make request for verification
+      const makeVerifyRequest = async (authToken: string | null) => {
+        return fetch('/api/auth/mfa/verify-setup', {
+          method: 'POST',
+          headers: {
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+      };
+
+      let response = await makeVerifyRequest(token);
+
+      // If 401 and we used a token, retry without header (use cookie)
+      if (response.status === 401 && token) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+        }
+        response = await makeVerifyRequest(null);
+      }
 
       if (response.ok) {
         const result = await response.json();
@@ -576,7 +599,7 @@ export default function SecurityPage() {
       setConfirmDialog({
         isOpen: true,
         title: language === 'ar' ? 'تعطيل المصادقة الثنائية' : 'Disable MFA',
-        message: language === 'ar' 
+        message: language === 'ar'
           ? 'هل أنت متأكد من تعطيل المصادقة الثنائية؟ هذا سيقلل من أمان حسابك.'
           : 'Are you sure you want to disable MFA? This will reduce your account security.',
         type: 'alert',
@@ -596,46 +619,81 @@ export default function SecurityPage() {
   };
 
   const performMfaToggle = async (enabled: boolean) => {
-
     setIsLoadingMfa(true);
     try {
-      const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0];
-      if (!token) return;
+      let token: string | null = null;
 
-      const response = await fetch('/api/auth/mfa/toggle', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
+      // Try localStorage first
+      if (typeof window !== 'undefined') {
+        token = localStorage.getItem('token');
+      }
+
+      // If not found, try cookies
+      if (!token && typeof document !== 'undefined') {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+          const [name, value] = cookie.trim().split('=');
+          if (name === 'token' || name === '__Host-token') {
+            token = decodeURIComponent(value);
+            break;
+          }
+        }
+      }
+      // CSRF token from hook
+      const csrf = csrfToken;
+      // Ensure CSRF token is ready before making request
+      if (csrfLoading || !csrf) {
+        showToast(
+          language === 'ar' ? 'جاري تحميل الرمز الأمني، يرجى الانتظار' : 'CSRF token loading, please wait',
+          'error'
+        );
+        setIsLoadingMfa(false);
+        return;
+      }
+      const makeRequest = async (authToken: string | null, csrfTok: string | null) => {
+        const headers: HeadersInit = {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ enabled }),
-      });
-
+        };
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`;
+        }
+        if (csrfTok) {
+          headers['X-CSRF-Token'] = csrfTok;
+        }
+        return fetch('/api/auth/mfa/toggle', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ enabled }),
+          credentials: 'include',
+        });
+      };
+      let response = await makeRequest(token, csrf);
+      if (response.status === 401 && token) {
+        // Clear stale token and retry without auth header
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+        }
+        response = await makeRequest(null, csrf);
+      }
       if (response.ok) {
         setMfaEnabled(enabled);
         if (!enabled) {
           setShowMfaSetup(false);
           setMfaSetupData(null);
         }
+        await fetchMfaStatus();
         showToast(
-          enabled 
+          enabled
             ? (language === 'ar' ? 'تم تفعيل المصادقة الثنائية' : 'MFA enabled')
             : (language === 'ar' ? 'تم تعطيل المصادقة الثنائية' : 'MFA disabled'),
           'success'
         );
       } else {
-        const error = await response.json();
-        showToast(
-          error.error || (language === 'ar' ? 'حدث خطأ' : 'An error occurred'),
-          'error'
-        );
+        const err = await response.json();
+        showToast(err.error || (language === 'ar' ? 'حدث خطأ' : 'An error occurred'), 'error');
       }
-    } catch (error) {
-      // MFA toggle error - no sensitive data logged
-      showToast(
-        language === 'ar' ? 'حدث خطأ' : 'An error occurred',
-        'error'
-      );
+    } catch (e) {
+      showToast(language === 'ar' ? 'حدث خطأ' : 'An error occurred', 'error');
     } finally {
       setIsLoadingMfa(false);
     }
@@ -647,7 +705,7 @@ export default function SecurityPage() {
 
     const newCode = [...mfaVerificationCode];
     newCode[index] = value;
-    
+
     // Update state immediately
     setMfaVerificationCode(newCode);
 
@@ -685,15 +743,15 @@ export default function SecurityPage() {
     if (/[a-z]/.test(password)) strength++;
     if (/[0-9]/.test(password)) strength++;
     if (/[^A-Za-z0-9]/.test(password)) strength++;
-    
+
     return {
       score: strength,
       text: strength < 2 ? (language === 'ar' ? 'ضعيف' : 'Weak') :
-            strength < 4 ? (language === 'ar' ? 'متوسط' : 'Medium') :
-            (language === 'ar' ? 'قوي' : 'Strong'),
+        strength < 4 ? (language === 'ar' ? 'متوسط' : 'Medium') :
+          (language === 'ar' ? 'قوي' : 'Strong'),
       color: strength < 2 ? 'bg-red-500' :
-             strength < 4 ? 'bg-yellow-500' :
-             'bg-green-500'
+        strength < 4 ? 'bg-yellow-500' :
+          'bg-green-500'
     };
   };
 
@@ -708,21 +766,6 @@ export default function SecurityPage() {
             <h1 className="text-2xl font-bold text-gray-900" suppressHydrationWarning>
               {mounted ? (language === 'ar' ? 'الأمان' : 'Security') : 'الأمان'}
             </h1>
-            <button
-              onClick={handleSecuritySettingsChange}
-              disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 bg-[#DAA520] text-white rounded-lg hover:bg-[#B8860B] transition-colors disabled:opacity-50"
-              suppressHydrationWarning
-            >
-              {isSaving ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              <span suppressHydrationWarning>
-                {mounted ? (language === 'ar' ? 'حفظ' : 'Save') : 'حفظ'}
-              </span>
-            </button>
           </div>
         </div>
       </header>
@@ -766,16 +809,15 @@ export default function SecurityPage() {
                     {mounted ? (language === 'ar' ? 'المصادقة الثنائية (MFA)' : 'Two-Factor Authentication (MFA)') : 'المصادقة الثنائية (MFA)'}
                   </h3>
                   <p className="text-sm text-gray-500 mt-1" suppressHydrationWarning>
-                    {mounted ? (language === 'ar' 
+                    {mounted ? (language === 'ar'
                       ? 'أضف طبقة أمان إضافية. يتطلب كود من 6 أرقام من Google Authenticator أو Gmail.'
                       : 'Add an extra layer of security. Requires a 6-digit code from Google Authenticator or Gmail.'
                     ) : 'أضف طبقة أمان إضافية. يتطلب كود من 6 أرقام من Google Authenticator أو Gmail.'}
                   </p>
-                  <div className={`mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
-                    mfaEnabled 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-gray-100 text-gray-800'
-                  }`} suppressHydrationWarning>
+                  <div className={`mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${mfaEnabled
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-gray-100 text-gray-800'
+                    }`} suppressHydrationWarning>
                     {mfaEnabled ? (
                       <>
                         <CheckCircle className="w-4 h-4" />
@@ -802,31 +844,31 @@ export default function SecurityPage() {
                 <h4 className="text-lg font-semibold text-gray-900 mb-4" suppressHydrationWarning>
                   {mounted ? (language === 'ar' ? 'إعداد المصادقة الثنائية' : 'Setup Two-Factor Authentication') : 'إعداد المصادقة الثنائية'}
                 </h4>
-                
+
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-gray-700 mb-2" suppressHydrationWarning>
-                      {mounted ? (language === 'ar' 
+                      {mounted ? (language === 'ar'
                         ? '1. افتح تطبيق Google Authenticator على هاتفك'
                         : '1. Open Google Authenticator app on your phone'
                       ) : '1. افتح تطبيق Google Authenticator على هاتفك'}
                     </p>
                     <p className="text-sm text-gray-700 mb-4" suppressHydrationWarning>
-                      {mounted ? (language === 'ar' 
+                      {mounted ? (language === 'ar'
                         ? '2. امسح رمز QR أدناه أو أدخل المفتاح يدوياً'
                         : '2. Scan the QR code below or enter the key manually'
                       ) : '2. امسح رمز QR أدناه أو أدخل المفتاح يدوياً'}
                     </p>
-                    
+
                     {/* QR Code */}
                     <div className="flex justify-center mb-4">
-                      <img 
-                        src={mfaSetupData.qrCode} 
-                        alt="MFA QR Code" 
+                      <img
+                        src={mfaSetupData.qrCode}
+                        alt="MFA QR Code"
                         className="border-2 border-gray-300 rounded-lg p-2 bg-white"
                       />
                     </div>
-                    
+
                     {/* Manual Entry Key */}
                     <div className="bg-white p-4 rounded-lg border border-gray-300">
                       <p className="text-xs text-gray-600 mb-2" suppressHydrationWarning>
@@ -858,12 +900,12 @@ export default function SecurityPage() {
 
                   <div>
                     <p className="text-sm font-semibold text-gray-900 mb-3" suppressHydrationWarning>
-                      {mounted ? (language === 'ar' 
+                      {mounted ? (language === 'ar'
                         ? '3. أدخل الكود المكون من 6 أرقام من التطبيق:'
                         : '3. Enter the 6-digit code from the app:'
                       ) : '3. أدخل الكود المكون من 6 أرقام من التطبيق:'}
                     </p>
-                    
+
                     {/* 6-digit code input */}
                     {/* SECURITY: Force LTR direction for numeric input even in RTL languages */}
                     {/* Numbers should always be entered left-to-right for consistency */}
@@ -903,7 +945,7 @@ export default function SecurityPage() {
                         suppressHydrationWarning
                       >
                         <span suppressHydrationWarning>
-                          {isLoadingMfa 
+                          {isLoadingMfa
                             ? (mounted ? (language === 'ar' ? 'جاري التحقق...' : 'Verifying...') : 'جاري التحقق...')
                             : (mounted ? (language === 'ar' ? 'تفعيل المصادقة الثنائية' : 'Enable MFA') : 'تفعيل المصادقة الثنائية')
                           }
@@ -931,18 +973,25 @@ export default function SecurityPage() {
             {/* MFA Toggle Buttons */}
             {!showMfaSetup && (
               <div className="flex gap-2">
-                {mfaEnabled ? (
+                {isLoadingMfa ? (
+                  <button
+                    disabled
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed"
+                    suppressHydrationWarning
+                  >
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span suppressHydrationWarning>
+                      {mounted ? (language === 'ar' ? 'جاري التحميل...' : 'Loading...') : 'جاري التحميل...'}
+                    </span>
+                  </button>
+                ) : mfaEnabled ? (
                   <button
                     onClick={() => handleMfaToggle(false)}
                     disabled={isLoadingMfa}
                     className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                     suppressHydrationWarning
                   >
-                    {isLoadingMfa ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    ) : (
                       <X className="w-4 h-4" />
-                    )}
                     <span suppressHydrationWarning>
                       {mounted ? (language === 'ar' ? 'تعطيل' : 'Disable') : 'تعطيل'}
                     </span>
@@ -954,11 +1003,7 @@ export default function SecurityPage() {
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                     suppressHydrationWarning
                   >
-                    {isLoadingMfa ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    ) : (
                       <Shield className="w-4 h-4" />
-                    )}
                     <span suppressHydrationWarning>
                       {mounted ? (language === 'ar' ? 'تفعيل المصادقة الثنائية' : 'Enable MFA') : 'تفعيل المصادقة الثنائية'}
                     </span>
@@ -978,7 +1023,7 @@ export default function SecurityPage() {
                     {mounted ? (language === 'ar' ? 'حساب مخترق؟' : 'Compromised account?') : 'حساب مخترق؟'}
                   </h3>
                   <p className="text-sm text-gray-500 mt-1" suppressHydrationWarning>
-                    {mounted ? (language === 'ar' 
+                    {mounted ? (language === 'ar'
                       ? 'اتخذ خطوات مثل تغيير كلمة المرور وتسجيل الخروج من كل مكان.'
                       : 'Take steps such as changing your password and signing out everywhere.'
                     ) : 'اتخذ خطوات مثل تغيير كلمة المرور وتسجيل الخروج من كل مكان.'}
@@ -1038,13 +1083,13 @@ export default function SecurityPage() {
                   <input
                     type={showPasswords.current ? 'text' : 'password'}
                     value={passwordForm.currentPassword}
-                    onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
                     className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DAA520] focus:border-transparent"
                     required
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPasswords({...showPasswords, current: !showPasswords.current})}
+                    onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -1061,7 +1106,7 @@ export default function SecurityPage() {
                   <input
                     type={showPasswords.new ? 'text' : 'password'}
                     value={passwordForm.newPassword}
-                    onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                     className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DAA520] focus:border-transparent"
                     required
                     minLength={8}
@@ -1069,7 +1114,7 @@ export default function SecurityPage() {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPasswords({...showPasswords, new: !showPasswords.new})}
+                    onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -1092,13 +1137,13 @@ export default function SecurityPage() {
                   <input
                     type={showPasswords.confirm ? 'text' : 'password'}
                     value={passwordForm.confirmPassword}
-                    onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
                     className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DAA520] focus:border-transparent"
                     required
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPasswords({...showPasswords, confirm: !showPasswords.confirm})}
+                    onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -1126,7 +1171,7 @@ export default function SecurityPage() {
                     <Lock className="w-4 h-4" />
                   )}
                   <span suppressHydrationWarning>
-                    {isChangingPassword 
+                    {isChangingPassword
                       ? (mounted ? (language === 'ar' ? 'جاري التغيير...' : 'Changing...') : 'جاري التغيير...')
                       : (mounted ? (language === 'ar' ? 'تغيير كلمة المرور' : 'Change Password') : 'تغيير كلمة المرور')
                     }

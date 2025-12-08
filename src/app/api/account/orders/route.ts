@@ -12,17 +12,8 @@ export async function GET(request: NextRequest) {
     // to backend to let it handle the authentication (in case of JWT_SECRET mismatch)
     const userToken = await verifyJWTFromRequestAsync(request);
     
-    // Debug logging (remove in production)
-    if (!userToken) {
-      console.log('[Orders API] Frontend JWT verification failed - forwarding to backend anyway');
-      const authHeader = request.headers.get('authorization');
-      const cookie = request.cookies.get('token')?.value;
-      console.log('[Orders API] Auth header present:', !!authHeader);
-      console.log('[Orders API] Cookie present:', !!cookie);
-      // Don't return 401 here - let backend handle authentication
-      // This allows the request to proceed even if frontend verification fails
-      // (useful if JWT_SECRET is different or missing in frontend)
-    }
+    // If frontend verification fails, still forward to backend
+    // Backend will handle authentication
     
     // Only check if we have a valid token payload with userId or email
     // If not, we still forward to backend (it will handle auth)
@@ -107,12 +98,10 @@ export async function GET(request: NextRequest) {
         data = { error: text || 'Failed to fetch orders' };
       }
     } catch (parseError) {
-      console.error('[Orders API] Failed to parse response:', parseError);
       data = { error: 'Failed to parse response from server' };
     }
 
     if (!response.ok) {
-      console.error('[Orders API] Backend error:', response.status, data);
       return NextResponse.json(
         { error: data.error || data.message || 'Failed to fetch orders' },
         { status: response.status }
@@ -123,7 +112,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Account orders API error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch orders' },
       { status: 500 }

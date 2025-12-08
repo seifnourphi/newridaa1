@@ -7,6 +7,7 @@ import { Star, Send } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { useCSRF } from '@/hooks/useCSRF';
+import { getImageSrc } from '@/lib/image-utils';
 
 interface CustomerReview {
   id: string;
@@ -749,7 +750,7 @@ export function FeatureSections() {
                                 <div className="relative flex-shrink-0">
                                   <div className="w-12 h-12 rounded-full overflow-hidden mr-3 border-2 border-[#DAA520]/20 shadow-md">
                                     <img
-                                      src={uniqueReview.user.avatar}
+                                      src={getImageSrc(uniqueReview.user.avatar, '')}
                                       alt={`${uniqueReview.user.firstName || ''} ${uniqueReview.user.lastName || ''}`}
                                       className="w-full h-full object-cover"
                                     />
@@ -835,7 +836,7 @@ export function FeatureSections() {
                           <div className="relative flex-shrink-0">
                             <div className="w-16 h-16 rounded-full overflow-hidden mr-4 border-2 border-[#DAA520]/20 shadow-md">
                               <img
-                                src={review.user.avatar}
+                                src={getImageSrc(review.user.avatar, '')}
                                 alt={`${review.user.firstName || ''} ${review.user.lastName || ''}`}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
