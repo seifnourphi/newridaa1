@@ -31,10 +31,21 @@ export default function WishlistPage() {
   const { items, removeFromWishlist, clearWishlist } = useWishlist();
   const { showToast } = useToast();
   const [showClearModal, setShowClearModal] = useState(false);
+  const [removeProductId, setRemoveProductId] = useState<string | null>(null);
 
   const handleRemoveFromWishlist = (productId: string) => {
-    if (confirm(language === 'ar' ? 'هل تريد حذف هذا المنتج من المفضلة؟' : 'Are you sure you want to remove this product from wishlist?')) {
-      removeFromWishlist(productId);
+    setRemoveProductId(productId);
+  };
+
+  const confirmRemoveProduct = () => {
+    if (removeProductId) {
+      removeFromWishlist(removeProductId);
+      setRemoveProductId(null);
+      showToast(
+        language === 'ar' ? 'تم حذف المنتج من المفضلة' : 'Product removed from wishlist',
+        'success',
+        3000
+      );
     }
   };
 
@@ -67,7 +78,7 @@ export default function WishlistPage() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(Number(price));
-    
+
     // Add currency symbol based on language
     if (language === 'ar') {
       return `ج.م ${formatted}`;
@@ -97,13 +108,13 @@ export default function WishlistPage() {
               {language === 'ar' ? 'المفضلة' : 'My Wishlist'}
             </h1>
             <p className="text-gray-600 mt-2">
-              {language === 'ar' 
+              {language === 'ar'
                 ? `${items.length} منتج في المفضلة`
                 : `${items.length} items in your wishlist`
               }
             </p>
           </div>
-          
+
           {items.length > 0 && (
             <button
               onClick={handleClearWishlist}
@@ -123,7 +134,7 @@ export default function WishlistPage() {
               {language === 'ar' ? 'المفضلة فارغة' : 'Your wishlist is empty'}
             </h2>
             <p className="text-gray-600 mb-8 max-w-md mx-auto">
-              {language === 'ar' 
+              {language === 'ar'
                 ? 'لم تقم بإضافة أي منتجات للمفضلة بعد. تصفح منتجاتنا وأضف ما يعجبك!'
                 : 'You haven\'t added any products to your wishlist yet. Browse our products and add what you like!'
               }
@@ -150,7 +161,7 @@ export default function WishlistPage() {
                       (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1594223274512-ad4803739b7c?w=400&h=400&fit=crop&crop=center';
                     }}
                   />
-                  
+
                   {/* Hover Overlay */}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                     <div className="flex gap-2">
@@ -174,7 +185,7 @@ export default function WishlistPage() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
                     {language === 'ar' ? item.nameAr : item.name}
                   </h3>
-                  
+
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-xl font-bold text-[#DAA520]">
                       {formatPrice(item.price)}
@@ -238,7 +249,7 @@ export default function WishlistPage() {
                   </button>
                 </div>
                 <p className="text-gray-600 mb-6">
-                  {language === 'ar' 
+                  {language === 'ar'
                     ? 'هل أنت متأكد من حذف جميع المنتجات من المفضلة؟ لا يمكن التراجع عن هذا الإجراء.'
                     : 'Are you sure you want to remove all items from your wishlist? This action cannot be undone.'
                   }
@@ -256,6 +267,53 @@ export default function WishlistPage() {
                   >
                     <Trash2 className="w-4 h-4" />
                     {language === 'ar' ? 'حذف الكل' : 'Clear All'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Product Confirmation Modal */}
+      {removeProductId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setRemoveProductId(null)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {language === 'ar' ? 'حذف المنتج' : 'Remove Product'}
+                  </h3>
+                  <button
+                    onClick={() => setRemoveProductId(null)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <p className="text-gray-600 mb-6">
+                  {language === 'ar'
+                    ? 'هل أنت متأكد من حذف هذا المنتج من المفضلة؟'
+                    : 'Are you sure you want to remove this product from your wishlist?'
+                  }
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setRemoveProductId(null)}
+                    className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                  >
+                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </button>
+                  <button
+                    onClick={confirmRemoveProduct}
+                    className="flex-1 px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {language === 'ar' ? 'حذف' : 'Remove'}
                   </button>
                 </div>
               </div>
